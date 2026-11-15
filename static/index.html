@@ -215,6 +215,9 @@
   </style>
 
   <script>
+    // 음성 서버 주소: 같은 서버면 빈 값. 닷홈처럼 화면만 따로 올릴 때는 build_dothome.py가 Render 주소를 넣는다
+    const API_BASE = String(window.TTS_API_BASE || "").replace(/\/+$/, "");
+
     const VOICE_LABELS = {
       "ko-KR-SunHiNeural": "선희",
       "ko-KR-InJoonNeural": "인준",
@@ -522,7 +525,7 @@
       setStatus("방송 음성을 만들고 있습니다...", "text-brand-700");
 
       try {
-        const res = await fetch("/api/tts", {
+        const res = await fetch(`${API_BASE}/api/tts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: text.slice(0, 3000), voice, rate, pitch })
@@ -620,11 +623,32 @@
       updateRangeLabels();
       updateStats();
       renderIcons();
-      // 배포 서버처럼 Supertonic이 설치되지 않은 곳에서는 선택지에서 숨긴다
-      fetch("/api/voices").then(r => r.json()).then(v => {
-        if (!v.supertonic) document.getElementById("supertonic-group")?.remove();
-      }).catch(() => {});
+      checkVoiceServer();
     });
+
+    // 음성 서버 확인: 배포 서버처럼 Supertonic이 없으면 선택지에서 숨기고,
+    // 다른 주소의 음성 서버(Render 무료)를 쓰는 경우 잠든 서버를 미리 깨운다
+    async function checkVoiceServer() {
+      const deadline = Date.now() + 90000;
+      if (API_BASE) setStatus("음성 서버를 깨우는 중입니다... (처음 접속 시 최대 1분)", "text-amber-700");
+      for (;;) {
+        try {
+          const res = await fetch(`${API_BASE}/api/voices`, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const v = await res.json();
+          if (!v.supertonic) document.getElementById("supertonic-group")?.remove();
+          if (API_BASE && /깨우는 중/.test(statusMsg.textContent)) setStatus("음성 서버 준비 완료. 방송할 수 있습니다.", "text-emerald-700");
+          return;
+        } catch (e) {
+          if (!API_BASE || Date.now() > deadline) {
+            document.getElementById("supertonic-group")?.remove();
+            if (API_BASE) setStatus("음성 서버에 연결하지 못했습니다. 잠시 후 새로고침해 주세요.", "text-red-600");
+            return;
+          }
+          await new Promise(r => setTimeout(r, 5000));
+        }
+      }
+    }
   </script>
 </body>
 </html>

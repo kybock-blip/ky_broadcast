@@ -10,6 +10,7 @@ from typing import Optional
 
 import edge_tts
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
@@ -17,6 +18,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 app = FastAPI(title="건영1차아파트 안내방송시스템")
+
+# 화면을 다른 주소(닷홈)에 올린 경우 그 주소에서만 음성 API를 부를 수 있게 허용
+DEFAULT_ORIGINS = "https://ky1apt.dothome.co.kr,http://ky1apt.dothome.co.kr"
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", DEFAULT_ORIGINS).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 MAX_TEXT = 3000
 DEFAULT_VOICE = "ko-KR-SunHiNeural"

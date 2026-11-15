@@ -83,3 +83,23 @@ def test_supertonic_hidden_when_not_installed(monkeypatch):
 
 def test_healthz():
     assert client.get("/healthz").json() == {"ok": True}
+
+
+def test_cors_allows_only_dothome():
+    ok = client.options("/api/tts", headers={
+        "Origin": "https://ky1apt.dothome.co.kr",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type",
+    })
+    assert ok.status_code == 200
+    assert ok.headers["access-control-allow-origin"] == "https://ky1apt.dothome.co.kr"
+    bad = client.get("/api/voices", headers={"Origin": "https://evil.example.com"})
+    assert "access-control-allow-origin" not in bad.headers
+
+
+def test_build_dothome_injects_api_base(tmp_path, monkeypatch):
+    import build_dothome
+    monkeypatch.setattr(build_dothome, "OUT_DIR", str(tmp_path))
+    html = open(build_dothome.build(), encoding="utf-8").read()
+    assert 'window.TTS_API_BASE = "https://geonyoung1-broadcast.onrender.com"' in html
+    assert html.index("TTS_API_BASE =") < html.index("const API_BASE"), "주소가 화면 스크립트보다 먼저 정해져야 함"
