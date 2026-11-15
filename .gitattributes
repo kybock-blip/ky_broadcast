@@ -1,0 +1,3 @@
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+설치_안내.txt text eol=crlf

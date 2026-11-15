@@ -107,24 +107,11 @@
         <div class="space-y-1.5">
           <label for="voice-select" class="block text-xs font-bold text-stone-700">방송 목소리</label>
           <select id="voice-select" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-700">
-            <optgroup label="Microsoft Edge 신경망 (인터넷 필요 · MP3)">
-              <option value="ko-KR-SunHiNeural">여성 · 선희 (또렷한 아나운서 톤)</option>
-              <option value="ko-KR-InJoonNeural">남성 · 인준 (차분한 톤)</option>
-              <option value="ko-KR-HyunsuMultilingualNeural">남성 · 현수 (자연스러운 톤)</option>
-            </optgroup>
-            <optgroup id="supertonic-group" label="Supertonic (이 PC에서 생성 · WAV)">
-              <option value="supertonic-F1">Supertonic 여성 F1</option>
-              <option value="supertonic-F2">Supertonic 여성 F2</option>
-              <option value="supertonic-F3">Supertonic 여성 F3</option>
-              <option value="supertonic-F4">Supertonic 여성 F4</option>
-              <option value="supertonic-F5">Supertonic 여성 F5</option>
-              <option value="supertonic-M1">Supertonic 남성 M1</option>
-              <option value="supertonic-M2">Supertonic 남성 M2</option>
-              <option value="supertonic-M3">Supertonic 남성 M3</option>
-              <option value="supertonic-M4">Supertonic 남성 M4</option>
-              <option value="supertonic-M5">Supertonic 남성 M5</option>
-            </optgroup>
+            <option value="ko-KR-SunHiNeural">여성 · 선희 (또렷한 아나운서 톤)</option>
+            <option value="ko-KR-InJoonNeural">남성 · 인준 (차분한 톤)</option>
+            <option value="ko-KR-HyunsuMultilingualNeural">남성 · 현수 (자연스러운 톤)</option>
           </select>
+          <p class="text-[11px] text-stone-500">Microsoft Edge 신경망 음성 · 인터넷 연결이 필요합니다.</p>
         </div>
 
         <div class="space-y-1.5">
@@ -137,7 +124,7 @@
         </div>
 
         <div class="space-y-1.5">
-          <label for="pitch-range" class="block text-xs font-bold text-stone-700">음높이: <span id="pitch-val" class="text-brand-800">+0Hz</span> <span class="font-normal text-stone-400">(Supertonic은 적용 안 됨)</span></label>
+          <label for="pitch-range" class="block text-xs font-bold text-stone-700">음높이: <span id="pitch-val" class="text-brand-800">+0Hz</span></label>
           <input id="pitch-range" type="range" min="-30" max="30" value="0" step="1" oninput="updateRangeLabels()" class="w-full accent-blue-700">
           <div class="flex justify-between text-[11px] text-stone-400"><span>낮게 (-30Hz)</span><span>기본 (0Hz)</span><span>높게 (+30Hz)</span></div>
         </div>
@@ -223,8 +210,6 @@
       "ko-KR-InJoonNeural": "인준",
       "ko-KR-HyunsuMultilingualNeural": "현수",
     };
-    for (const g of ["F", "M"]) for (let i = 1; i <= 5; i++) VOICE_LABELS[`supertonic-${g}${i}`] = `Supertonic_${g}${i}`;
-
     const PRESETS = {
       water: "관리사무소에서 입주민 여러분께 단수 안내 말씀 드립니다. 저수조 청소 작업으로 11월 20일 목요일 오전 10시부터 오후 2시까지 전 세대 수돗물 공급이 중단됩니다. 필요하신 생활용수는 미리 받아 두시기 바랍니다. 입주민 여러분의 양해를 부탁드립니다.",
       elevator: "관리사무소에서 안내 말씀 드립니다. 승강기 정기 안전점검으로 11월 21일 금요일 오후 1시부터 3시까지 101동 승강기 운행이 일시 중지됩니다. 점검 시간에는 계단을 이용해 주시기 바랍니다. 불편을 드려 죄송합니다.",
@@ -482,7 +467,7 @@
 
     function makeFilename(voice, blob) {
       const label = VOICE_LABELS[voice] || "음성";
-      const ext = (blob && blob.type && blob.type.includes("wav")) || String(voice).startsWith("supertonic-") ? "wav" : "mp3";
+      const ext = "mp3";
       const d = new Date();
       const pad = (n) => String(n).padStart(2, "0");
       return `안내방송_${label}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
@@ -626,23 +611,20 @@
       checkVoiceServer();
     });
 
-    // 음성 서버 확인: 배포 서버처럼 Supertonic이 없으면 선택지에서 숨기고,
     // 다른 주소의 음성 서버(Render 무료)를 쓰는 경우 잠든 서버를 미리 깨운다
     async function checkVoiceServer() {
+      if (!API_BASE) return;
       const deadline = Date.now() + 90000;
-      if (API_BASE) setStatus("음성 서버를 깨우는 중입니다... (처음 접속 시 최대 1분)", "text-amber-700");
+      setStatus("음성 서버를 깨우는 중입니다... (처음 접속 시 최대 1분)", "text-amber-700");
       for (;;) {
         try {
-          const res = await fetch(`${API_BASE}/api/voices`, { cache: "no-store" });
+          const res = await fetch(`${API_BASE}/healthz`, { cache: "no-store" });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const v = await res.json();
-          if (!v.supertonic) document.getElementById("supertonic-group")?.remove();
-          if (API_BASE && /깨우는 중/.test(statusMsg.textContent)) setStatus("음성 서버 준비 완료. 방송할 수 있습니다.", "text-emerald-700");
+          if (/깨우는 중/.test(statusMsg.textContent)) setStatus("음성 서버 준비 완료. 방송할 수 있습니다.", "text-emerald-700");
           return;
         } catch (e) {
-          if (!API_BASE || Date.now() > deadline) {
-            document.getElementById("supertonic-group")?.remove();
-            if (API_BASE) setStatus("음성 서버에 연결하지 못했습니다. 잠시 후 새로고침해 주세요.", "text-red-600");
+          if (Date.now() > deadline) {
+            setStatus("음성 서버에 연결하지 못했습니다. 잠시 후 새로고침해 주세요.", "text-red-600");
             return;
           }
           await new Promise(r => setTimeout(r, 5000));

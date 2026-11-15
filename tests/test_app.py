@@ -52,14 +52,16 @@ def test_tts_options_and_bad_values(fake_edge):
     assert fake_edge[-1][1] == {"voice": "ko-KR-SunHiNeural", "rate": "-4%"}
 
 
-def test_tts_supertonic(monkeypatch):
-    calls = []
-    monkeypatch.setattr(server, "SUPERTONIC_AVAILABLE", True)
-    monkeypatch.setattr(server, "tts_audio_cache", {})
-    monkeypatch.setattr(server, "_synthesize_supertonic", lambda t, v, s: calls.append((t, v, s)) or b"RIFFwav")
+def test_old_supertonic_voice_falls_back_to_edge(fake_edge):
+    """Supertonic은 제거됨: 예전 화면이 supertonic 목소리를 보내도 기본 Edge 목소리로 방송"""
     r = client.post("/api/tts", json={"text": "단수 안내", "voice": "supertonic-M2", "rate": "+10%"})
-    assert r.status_code == 200 and r.headers["content-type"].startswith("audio/wav")
-    assert calls == [("단수 안내", "M2", 1.1)]
+    assert r.status_code == 200 and r.headers["content-type"].startswith("audio/mpeg")
+    assert fake_edge[-1][1] == {"voice": "ko-KR-SunHiNeural", "rate": "+10%"}
+    assert client.get("/api/voices").json() == {"supertonic": False}
+
+
+def test_page_has_no_supertonic():
+    assert "supertonic" not in client.get("/").text.lower()
 
 
 def test_tts_failure_returns_502(monkeypatch):
@@ -72,13 +74,6 @@ def test_tts_failure_returns_502(monkeypatch):
     monkeypatch.setattr(server.edge_tts, "Communicate", Broken)
     r = client.post("/api/tts", json={"text": "인터넷 끊김"})
     assert r.status_code == 502 and "인터넷" in r.json()["detail"]
-
-
-def test_supertonic_hidden_when_not_installed(monkeypatch):
-    monkeypatch.setattr(server, "SUPERTONIC_AVAILABLE", False)
-    assert client.get("/api/voices").json() == {"supertonic": False}
-    r = client.post("/api/tts", json={"text": "가", "voice": "supertonic-F1"})
-    assert r.status_code == 400 and "Edge" in r.json()["detail"]
 
 
 def test_healthz():
@@ -103,3 +98,17 @@ def test_build_dothome_injects_api_base(tmp_path, monkeypatch):
     html = open(build_dothome.build(), encoding="utf-8").read()
     assert 'window.TTS_API_BASE = "https://geonyoung1-broadcast.onrender.com"' in html
     assert html.index("TTS_API_BASE =") < html.index("const API_BASE"), "주소가 화면 스크립트보다 먼저 정해져야 함"
+
+
+def test_package_contents(tmp_path, monkeypatch):
+    import zipfile
+    import build_package
+    monkeypatch.setattr(build_package, "OUT", str(tmp_path / "pkg.zip"))
+    z = zipfile.ZipFile(build_package.build())
+    names = set(z.namelist())
+    top = build_package.TOP
+    assert {f"{top}/{f}" for f in build_package.FILES} == names
+    bat = z.read(f"{top}/start_server.bat")
+    assert bat.count(b"\r\n") == bat.count(b"\n"), "cmd용 배치 파일은 CRLF 줄바꿈이어야 함"
+    assert b"supertonic" not in bat.lower()
+    assert z.read(f"{top}/make_shortcut.ps1").startswith(b"\xef\xbb\xbf"), "PowerShell 5.1이 한글을 읽도록 BOM 필요"
