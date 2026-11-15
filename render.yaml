@@ -1,0 +1,14 @@
+# Render 배포 설정 (Blueprint): GitHub 저장소를 연결하면 이 파일대로 자동 배포된다
+services:
+  - type: web
+    name: geonyoung1-broadcast
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8

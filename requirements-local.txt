@@ -1,0 +1,6 @@
+# Local PC only: server packages + Supertonic local voices + tests
+-r requirements.txt
+supertonic>=1.3.1
+soundfile>=0.12
+httpx>=0.27
+pytest>=8.0

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>건영1차아파트 안내방송시스템</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Pretendard', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { font-size: 112.5%; }
+    html.large-font { font-size: 130%; }
+    body { font-family: 'Pretendard', sans-serif; }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased min-h-screen flex flex-col">
+
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-brand-800 text-white flex items-center justify-center shadow-sm shrink-0">
+          <i data-lucide="megaphone" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-[15px] sm:text-lg font-bold text-stone-900 leading-tight break-keep">건영1차아파트 안내방송시스템</h1>
+          <p class="text-[11px] text-brand-700 font-semibold truncate">관리사무소 AI 음성 안내방송</p>
+        </div>
+      </div>
+      <button id="font-toggle-btn" type="button" onclick="toggleLargeFont()" aria-pressed="false"
+              class="shrink-0 px-3 py-2 text-xs sm:text-sm font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg transition flex items-center gap-1.5">
+        <i data-lucide="type" class="w-4 h-4"></i>
+        <span id="font-toggle-label">큰 글씨</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-6">
+    <!-- 방송 문안 -->
+    <section class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+          <i data-lucide="file-text" class="w-4 h-4 text-brand-700"></i>
+          방송 문안 입력 <span class="text-xs font-normal text-stone-500">(Ctrl+Enter로 바로 방송)</span>
+        </span>
+        <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          <label class="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold cursor-pointer transition flex items-center gap-1">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i> .txt 불러오기
+            <input id="file-input" type="file" accept=".txt,.md" class="hidden" onchange="loadTextFile(event)">
+          </label>
+          <button type="button" onclick="pasteText()" class="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold transition">붙여넣기</button>
+          <button type="button" onclick="copyText()" class="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold transition">복사</button>
+          <button type="button" onclick="clearText()" class="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-700 hover:text-red-700 font-semibold transition">전체 지우기</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <span class="text-stone-500 font-semibold mr-1">자주 쓰는 방송:</span>
+        <button type="button" onclick="applyPreset('water')" class="preset-btn">🚰 단수 안내</button>
+        <button type="button" onclick="applyPreset('elevator')" class="preset-btn">🛗 승강기 점검</button>
+        <button type="button" onclick="applyPreset('disinfect')" class="preset-btn">🧴 세대 소독</button>
+        <button type="button" onclick="applyPreset('parking')" class="preset-btn">🚗 차량 이동 요청</button>
+        <button type="button" onclick="applyPreset('recycle')" class="preset-btn">♻️ 분리수거</button>
+        <button type="button" onclick="applyPreset('fire')" class="preset-btn">🧯 소방 훈련</button>
+      </div>
+      <p class="text-[11px] text-stone-500 -mt-2">예시 문안의 날짜·시간·동 호수는 실제 내용에 맞게 고쳐서 방송하세요.</p>
+
+      <textarea id="tts-text" rows="7" maxlength="3000"
+                placeholder="방송할 내용을 입력하시면 아나운서 음성으로 읽어 드립니다. (최대 3,000자)"
+                class="w-full p-4 rounded-xl border border-stone-300 bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-700 text-base leading-relaxed resize-y"></textarea>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600">
+        <div class="flex flex-wrap items-center gap-3">
+          <span id="stat-total" class="font-semibold text-stone-800">0 / 3,000자</span>
+          <span id="stat-nospace">공백 제외 0자</span>
+          <span id="stat-duration" class="text-brand-800 font-semibold">예상 방송 시간: 약 0초</span>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none font-semibold text-stone-700">
+          <input id="normalize-check" type="checkbox" checked class="w-4 h-4 accent-blue-700 rounded">
+          <span>발음 자동 보정 <span class="font-normal text-stone-500">(km·m·%·~ 자연스럽게 읽기)</span></span>
+        </label>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 음성 설정 -->
+      <section class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-700"></i>
+            음성 설정
+          </h2>
+          <button type="button" onclick="resetSettings()" class="text-xs font-semibold text-stone-500 hover:text-stone-800 underline">설정 초기화</button>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="voice-select" class="block text-xs font-bold text-stone-700">방송 목소리</label>
+          <select id="voice-select" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-700">
+            <optgroup label="Microsoft Edge 신경망 (인터넷 필요 · MP3)">
+              <option value="ko-KR-SunHiNeural">여성 · 선희 (또렷한 아나운서 톤)</option>
+              <option value="ko-KR-InJoonNeural">남성 · 인준 (차분한 톤)</option>
+              <option value="ko-KR-HyunsuMultilingualNeural">남성 · 현수 (자연스러운 톤)</option>
+            </optgroup>
+            <optgroup id="supertonic-group" label="Supertonic (이 PC에서 생성 · WAV)">
+              <option value="supertonic-F1">Supertonic 여성 F1</option>
+              <option value="supertonic-F2">Supertonic 여성 F2</option>
+              <option value="supertonic-F3">Supertonic 여성 F3</option>
+              <option value="supertonic-F4">Supertonic 여성 F4</option>
+              <option value="supertonic-F5">Supertonic 여성 F5</option>
+              <option value="supertonic-M1">Supertonic 남성 M1</option>
+              <option value="supertonic-M2">Supertonic 남성 M2</option>
+              <option value="supertonic-M3">Supertonic 남성 M3</option>
+              <option value="supertonic-M4">Supertonic 남성 M4</option>
+              <option value="supertonic-M5">Supertonic 남성 M5</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <label for="rate-range" class="font-bold text-stone-700">말하기 속도: <span id="rate-val" class="text-brand-800">-4%</span></label>
+            <button type="button" onclick="setAnnouncerRate()" class="px-2 py-0.5 rounded bg-brand-50 text-brand-800 border border-brand-200 font-semibold hover:bg-brand-100">방송 표준 속도 (-4%)</button>
+          </div>
+          <input id="rate-range" type="range" min="-50" max="50" value="-4" step="1" oninput="updateRangeLabels(); updateStats()" class="w-full accent-blue-700">
+          <div class="flex justify-between text-[11px] text-stone-400"><span>느리게 (-50%)</span><span>보통 (0%)</span><span>빠르게 (+50%)</span></div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="pitch-range" class="block text-xs font-bold text-stone-700">음높이: <span id="pitch-val" class="text-brand-800">+0Hz</span> <span class="font-normal text-stone-400">(Supertonic은 적용 안 됨)</span></label>
+          <input id="pitch-range" type="range" min="-30" max="30" value="0" step="1" oninput="updateRangeLabels()" class="w-full accent-blue-700">
+          <div class="flex justify-between text-[11px] text-stone-400"><span>낮게 (-30Hz)</span><span>기본 (0Hz)</span><span>높게 (+30Hz)</span></div>
+        </div>
+      </section>
+
+      <!-- 방송 송출 -->
+      <section class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 flex flex-col justify-between space-y-4">
+        <div class="space-y-4">
+          <h2 class="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+            <i data-lucide="volume-2" class="w-4 h-4 text-brand-700"></i>
+            방송 송출
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-center gap-2 cursor-pointer select-none font-semibold text-stone-700 p-2.5 rounded-xl border border-stone-200 bg-stone-50">
+              <input id="chime-check" type="checkbox" checked class="w-4 h-4 accent-blue-700 rounded">
+              <span>🔔 시작·끝 차임벨</span>
+            </label>
+            <label class="flex items-center justify-between gap-2 font-semibold text-stone-700 p-2.5 rounded-xl border border-stone-200 bg-stone-50">
+              <span>🔁 방송 횟수</span>
+              <select id="repeat-select" class="px-2 py-1 rounded-lg border border-stone-300 bg-white text-xs font-semibold">
+                <option value="1">1회</option>
+                <option value="2" selected>2회</option>
+                <option value="3">3회</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="play-btn" type="button" onclick="generateAndBroadcast()"
+                    class="flex-1 min-w-[180px] py-3 px-4 rounded-xl bg-brand-800 hover:bg-brand-900 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-60">
+              <span>📢 방송 시작</span>
+            </button>
+            <button type="button" onclick="stopBroadcast()"
+                    class="py-3 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-sm border border-stone-300 transition">
+              ⏹ 방송 중지
+            </button>
+          </div>
+
+          <p id="status-msg" class="text-xs font-semibold text-stone-500 min-h-[1rem]"></p>
+
+          <audio id="tts-player" controls class="w-full rounded-lg"></audio>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100">
+          <span class="text-[11px] text-stone-500">저장 파일에는 음성만 들어갑니다 (차임벨 제외).</span>
+          <button id="download-btn" type="button" onclick="downloadCurrent()" disabled
+                  class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-200 disabled:text-stone-400 text-white text-xs font-bold transition flex items-center gap-1.5">
+            <span>💾 음성 파일 저장</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 방송 기록 -->
+    <section class="bg-white rounded-2xl border border-stone-200 shadow-sm p-5 space-y-3">
+      <div class="flex items-start justify-between gap-2">
+        <h2 class="text-sm font-bold text-stone-900 flex flex-wrap items-center gap-x-1.5">
+          <i data-lucide="history" class="w-4 h-4 text-brand-700"></i>
+          오늘 방송 기록 <span class="text-xs font-normal text-stone-500">(다시 만들지 않고 바로 재방송)</span>
+        </h2>
+        <button type="button" onclick="clearHistory()" class="shrink-0 text-xs font-semibold text-stone-500 hover:text-red-600">전체 삭제</button>
+      </div>
+      <div id="history-list" class="space-y-2">
+        <p class="text-xs text-stone-500 py-2">아직 방송한 내용이 없습니다. 문안을 입력하고 방송해 보세요.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-[11px] text-stone-400 py-4">건영1차아파트 관리사무소 · AI 음성 안내방송</footer>
+
+  <style>
+    .preset-btn { padding: .25rem .65rem; border-radius: 9999px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 600; transition: background .15s; }
+    .preset-btn:hover { background: #dbeafe; }
+  </style>
+
+  <script>
+    const VOICE_LABELS = {
+      "ko-KR-SunHiNeural": "선희",
+      "ko-KR-InJoonNeural": "인준",
+      "ko-KR-HyunsuMultilingualNeural": "현수",
+    };
+    for (const g of ["F", "M"]) for (let i = 1; i <= 5; i++) VOICE_LABELS[`supertonic-${g}${i}`] = `Supertonic_${g}${i}`;
+
+    const PRESETS = {
+      water: "관리사무소에서 입주민 여러분께 단수 안내 말씀 드립니다. 저수조 청소 작업으로 11월 20일 목요일 오전 10시부터 오후 2시까지 전 세대 수돗물 공급이 중단됩니다. 필요하신 생활용수는 미리 받아 두시기 바랍니다. 입주민 여러분의 양해를 부탁드립니다.",
+      elevator: "관리사무소에서 안내 말씀 드립니다. 승강기 정기 안전점검으로 11월 21일 금요일 오후 1시부터 3시까지 101동 승강기 운행이 일시 중지됩니다. 점검 시간에는 계단을 이용해 주시기 바랍니다. 불편을 드려 죄송합니다.",
+      disinfect: "관리사무소에서 세대 소독 안내 말씀 드립니다. 11월 24일 월요일 오전 9시부터 오후 5시까지 동별로 세대 소독을 실시합니다. 소독 시간에 댁에 계시지 않는 세대는 관리사무소로 연락 주시기 바랍니다.",
+      parking: "관리사무소에서 차량 이동을 요청 드립니다. 지하 주차장 출입구 앞에 주차된 차량의 차주께서는 지금 바로 차량을 이동해 주시기 바랍니다. 다시 한번 말씀 드립니다. 지하 주차장 출입구 앞 차량의 차주께서는 차량을 이동해 주시기 바랍니다.",
+      recycle: "관리사무소에서 분리수거 안내 말씀 드립니다. 재활용품 분리수거는 매주 수요일 오전 7시부터 오후 6시까지 지정된 장소에 배출해 주시기 바랍니다. 페트병은 라벨을 떼고 깨끗이 헹궈서 배출해 주십시오. 입주민 여러분의 협조에 감사드립니다.",
+      fire: "관리사무소에서 소방 훈련 안내 말씀 드립니다. 11월 27일 목요일 오후 2시에 화재 대피 훈련을 실시합니다. 훈련 중에는 비상벨이 울리니 놀라지 마시고, 안내에 따라 가까운 계단으로 대피해 주시기 바랍니다.",
+    };
+
+    const textEl = document.getElementById("tts-text");
+    const player = document.getElementById("tts-player");
+    const playBtn = document.getElementById("play-btn");
+    const downloadBtn = document.getElementById("download-btn");
+    const statusMsg = document.getElementById("status-msg");
+    let currentBlob = null;
+    let currentVoice = "ko-KR-SunHiNeural";
+    let currentAudioUrl = null;
+    let broadcastSeq = 0;          // 방송 순번: 중지하거나 새 방송을 시작하면 이전 방송 흐름은 멈춘다
+    let pendingWaiters = [];       // 중지 시 기다리던 재생 대기를 풀어 주기 위한 목록
+    let audioCtx = null;
+    let chimeNodes = [];           // 지금 울리는 차임벨 (중지 시 끊기)
+    const historyItems = [];
+
+    // 사생활 보호 모드 등에서 localStorage가 막혀도 화면은 동작하도록
+    const store = {
+      get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    };
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    function renderIcons() {
+      try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
+    }
+
+    function applyLargeFont(on) {
+      document.documentElement.classList.toggle("large-font", on);
+      const btn = document.getElementById("font-toggle-btn");
+      const lbl = document.getElementById("font-toggle-label");
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.className = (on
+        ? "font-bold text-white bg-brand-800 hover:bg-brand-900 border-brand-800"
+        : "font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border-stone-300")
+        + " shrink-0 px-3 py-2 text-xs sm:text-sm border rounded-lg transition flex items-center gap-1.5";
+      lbl.textContent = on ? "큰 글씨 ON" : "큰 글씨";
+    }
+
+    function toggleLargeFont() {
+      const next = !document.documentElement.classList.contains("large-font");
+      store.set("gy_large_font", next ? "1" : "0");
+      applyLargeFont(next);
+    }
+
+    function formatSigned(val, unit) {
+      const n = Number(val);
+      return `${n >= 0 ? "+" : ""}${n}${unit}`;
+    }
+
+    function updateRangeLabels() {
+      document.getElementById("rate-val").textContent = formatSigned(document.getElementById("rate-range").value, "%");
+      document.getElementById("pitch-val").textContent = formatSigned(document.getElementById("pitch-range").value, "Hz");
+    }
+
+    function setAnnouncerRate() {
+      document.getElementById("rate-range").value = -4;
+      updateRangeLabels();
+      updateStats();
+    }
+
+    function resetSettings() {
+      document.getElementById("voice-select").value = "ko-KR-SunHiNeural";
+      document.getElementById("rate-range").value = -4;
+      document.getElementById("pitch-range").value = 0;
+      document.getElementById("chime-check").checked = true;
+      document.getElementById("repeat-select").value = "2";
+      updateRangeLabels();
+      updateStats();
+    }
+
+    function normalizeTtsText(raw) {
+      return raw
+        .replace(/(\d+(?:,\d+)?(?:\.\d+)?)\s*km\b/gi, "$1킬로미터")
+        .replace(/(\d+(?:,\d+)?(?:\.\d+)?)\s*m\b/gi, "$1미터")
+        .replace(/(\d+(?:,\d+)?(?:\.\d+)?)\s*%/g, "$1퍼센트")
+        .replace(/(\d+)\s*~\s*(\d+)/g, "$1에서 $2")
+        .replace(/\s*(?:➔|→|->)\s*/g, ", ")
+        .replace(/\s*[·/]\s*/g, ", ")
+        .replace(/[ \t]+/g, " ")
+        .trim();
+    }
+
+    function updateStats() {
+      const val = textEl.value;
+      const noSpace = val.replace(/\s/g, "").length;
+      const ratePct = Number(document.getElementById("rate-range").value) || 0;
+      const charsPerSec = 5.5 * (1 + ratePct / 100);
+      const secs = noSpace ? Math.max(1, Math.round(noSpace / Math.max(1.5, charsPerSec))) : 0;
+      document.getElementById("stat-total").textContent = `${val.length.toLocaleString()} / 3,000자`;
+      document.getElementById("stat-nospace").textContent = `공백 제외 ${noSpace.toLocaleString()}자`;
+      document.getElementById("stat-duration").textContent = `예상 방송 시간: 약 ${secs}초 (1회)`;
+      store.set("gy_last_text", val);
+    }
+
+    function applyPreset(key) {
+      if (!PRESETS[key]) return;
+      textEl.value = PRESETS[key];
+      updateStats();
+      textEl.focus();
+    }
+
+    function loadTextFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        textEl.value = String(reader.result || "").slice(0, 3000);
+        updateStats();
+        setStatus(`"${file.name}" 파일을 불러왔습니다.`, "text-brand-700");
+      };
+      reader.readAsText(file, "utf-8");
+      event.target.value = "";
+    }
+
+    async function pasteText() {
+      try {
+        textEl.value = (await navigator.clipboard.readText()).slice(0, 3000);
+        updateStats();
+      } catch (e) {
+        setStatus("클립보드 접근 권한이 없습니다. 직접 Ctrl+V로 붙여넣어 주세요.", "text-amber-700");
+      }
+    }
+
+    async function copyText() {
+      if (!textEl.value) return;
+      try {
+        await navigator.clipboard.writeText(textEl.value);
+        setStatus("방송 문안을 클립보드에 복사했습니다.", "text-brand-700");
+      } catch (e) {
+        setStatus("복사에 실패했습니다.", "text-red-600");
+      }
+    }
+
+    function clearText() {
+      textEl.value = "";
+      updateStats();
+      textEl.focus();
+    }
+
+    function setStatus(msg, cls = "text-stone-500") {
+      statusMsg.className = `text-xs font-semibold min-h-[1rem] ${cls}`;
+      statusMsg.textContent = msg;
+    }
+
+    // ---------- 차임벨 (브라우저에서 직접 합성, 저장 파일에는 포함되지 않음) ----------
+    const CHIME_UP = [523.25, 659.25, 783.99, 1046.5];   // 도-미-솔-도 (방송 시작)
+    const CHIME_DOWN = [1046.5, 783.99, 659.25, 523.25]; // 도-솔-미-도 (방송 끝)
+
+    function playChime(notes) {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      } catch (e) {
+        return Promise.resolve();
+      }
+      const step = 0.42;
+      const t0 = audioCtx.currentTime + 0.05;
+      notes.forEach((freq, i) => {
+        const start = t0 + i * step;
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.35, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+        gain.connect(audioCtx.destination);
+        chimeNodes.push(gain);
+        for (const [mult, vol] of [[1, 1], [2, 0.25], [3, 0.08]]) {  // 배음을 섞어 종소리처럼
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq * mult;
+          g.gain.value = vol;
+          osc.connect(g).connect(gain);
+          osc.start(start);
+          osc.stop(start + 1.2);
+        }
+      });
+      return sleep((notes.length - 1) * step * 1000 + 1100);
+    }
+
+    function sleep(ms) {
+      return new Promise(res => {
+        const t = setTimeout(() => res(true), ms);
+        pendingWaiters.push(() => { clearTimeout(t); res(false); });
+      });
+    }
+
+    function waitEnded() {
+      return new Promise(res => {
+        player.onended = () => res(true);
+        pendingWaiters.push(() => res(false));
+      });
+    }
+
+    function stopBroadcast(silent = false) {
+      broadcastSeq++;
+      pendingWaiters.splice(0).forEach(fn => fn());
+      player.onended = null;
+      player.pause();
+      player.currentTime = 0;
+      chimeNodes.splice(0).forEach(g => { try { g.disconnect(); } catch (e) {} });  // 울리던 차임벨도 즉시 끊기
+      if (!silent) setStatus("방송을 중지했습니다.", "text-stone-500");
+    }
+
+    function loadBlob(blob, voice) {
+      if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+      currentBlob = blob;
+      currentVoice = voice;
+      currentAudioUrl = URL.createObjectURL(blob);
+      player.src = currentAudioUrl;
+      downloadBtn.disabled = false;
+    }
+
+    // 차임벨 → 음성 (방송 횟수만큼, 사이 1.5초 쉼) → 차임벨
+    async function runBroadcast(blob, voice) {
+      stopBroadcast(true);
+      const seq = broadcastSeq;
+      loadBlob(blob, voice);
+      const chime = document.getElementById("chime-check").checked;
+      const times = Number(document.getElementById("repeat-select").value) || 1;
+      const name = VOICE_LABELS[voice] || voice;
+
+      if (chime) {
+        setStatus("🔔 시작 차임벨", "text-brand-700");
+        if (!(await playChime(CHIME_UP)) || seq !== broadcastSeq) return;
+      }
+      for (let i = 1; i <= times; i++) {
+        setStatus(`📢 방송 중 (${i}/${times}회 · ${name})`, "text-emerald-700");
+        player.currentTime = 0;
+        try {
+          await player.play();
+        } catch (e) {
+          if (seq === broadcastSeq) setStatus("소리를 재생하지 못했습니다. 화면을 한 번 누른 뒤 다시 시도해 주세요.", "text-red-600");
+          return;
+        }
+        if (!(await waitEnded()) || seq !== broadcastSeq) return;
+        if (i < times && (!(await sleep(1500)) || seq !== broadcastSeq)) return;
+      }
+      if (chime) {
+        setStatus("🔔 종료 차임벨", "text-brand-700");
+        if (!(await playChime(CHIME_DOWN)) || seq !== broadcastSeq) return;
+      }
+      setStatus(`방송을 마쳤습니다 (${times}회).`, "text-emerald-700");
+    }
+
+    function makeFilename(voice, blob) {
+      const label = VOICE_LABELS[voice] || "음성";
+      const ext = (blob && blob.type && blob.type.includes("wav")) || String(voice).startsWith("supertonic-") ? "wav" : "mp3";
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      return `안내방송_${label}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+    }
+
+    function triggerDownload(blob, voice) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = makeFilename(voice, blob);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadCurrent() {
+      if (currentBlob) triggerDownload(currentBlob, currentVoice);
+    }
+
+    async function generateAndBroadcast() {
+      const raw = textEl.value.trim();
+      if (!raw) {
+        setStatus("방송할 문안을 먼저 입력해 주세요.", "text-red-600");
+        textEl.focus();
+        return;
+      }
+      // 클릭 직후에 오디오를 깨워 두어야 브라우저가 차임벨 재생을 막지 않는다
+      try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+
+      const text = document.getElementById("normalize-check").checked ? normalizeTtsText(raw) : raw;
+      const voice = document.getElementById("voice-select").value;
+      const rate = formatSigned(document.getElementById("rate-range").value, "%");
+      const pitch = formatSigned(document.getElementById("pitch-range").value, "Hz");
+
+      stopBroadcast(true);
+      playBtn.disabled = true;
+      playBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>음성 만드는 중...</span>`;
+      renderIcons();
+      setStatus("방송 음성을 만들고 있습니다...", "text-brand-700");
+
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text.slice(0, 3000), voice, rate, pitch })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(typeof err.detail === "string" ? err.detail : `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        historyItems.unshift({
+          rawText: raw, voice, rate, pitch, blob,
+          time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
+        });
+        if (historyItems.length > 20) historyItems.pop();
+        renderHistory();
+        playBtn.disabled = false;
+        playBtn.innerHTML = `<span>📢 방송 시작</span>`;
+        await runBroadcast(blob, voice);
+      } catch (err) {
+        setStatus(`음성 생성 실패: ${err.message}`, "text-red-600");
+      } finally {
+        playBtn.disabled = false;
+        playBtn.innerHTML = `<span>📢 방송 시작</span>`;
+      }
+    }
+
+    function renderHistory() {
+      const box = document.getElementById("history-list");
+      if (!historyItems.length) {
+        box.innerHTML = `<p class="text-xs text-stone-500 py-2">아직 방송한 내용이 없습니다. 문안을 입력하고 방송해 보세요.</p>`;
+        return;
+      }
+      box.innerHTML = historyItems.map((item, idx) => `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-stone-200 bg-stone-50/60">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 text-[11px] text-stone-500 mb-0.5">
+              <span class="px-1.5 py-0.5 rounded bg-brand-100 text-brand-800 font-bold">${esc(VOICE_LABELS[item.voice] || item.voice)}</span>
+              <span>속도 ${esc(item.rate)}</span>
+              <span>· ${esc(item.time)}</span>
+            </div>
+            <p class="text-xs font-medium text-stone-800 truncate">${esc(item.rawText)}</p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0 text-xs">
+            <button type="button" onclick="replayHistory(${idx})" class="px-2.5 py-1.5 rounded-lg bg-brand-800 hover:bg-brand-900 text-white font-semibold">📢 재방송</button>
+            <button type="button" onclick="loadHistoryText(${idx})" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 font-semibold">문안 불러오기</button>
+            <button type="button" onclick="downloadHistory(${idx})" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">저장</button>
+            <button type="button" onclick="deleteHistory(${idx})" aria-label="기록 삭제" class="px-2 py-1.5 rounded-lg text-stone-400 hover:text-red-600 font-semibold">✕</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function replayHistory(idx) {
+      const item = historyItems[idx];
+      if (!item) return;
+      try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+      runBroadcast(item.blob, item.voice);
+    }
+
+    function loadHistoryText(idx) {
+      const item = historyItems[idx];
+      if (!item) return;
+      textEl.value = item.rawText;
+      updateStats();
+      textEl.focus();
+    }
+
+    function downloadHistory(idx) {
+      const item = historyItems[idx];
+      if (item) triggerDownload(item.blob, item.voice);
+    }
+
+    function deleteHistory(idx) {
+      historyItems.splice(idx, 1);
+      renderHistory();
+    }
+
+    function clearHistory() {
+      historyItems.length = 0;
+      renderHistory();
+    }
+
+    textEl.addEventListener("input", updateStats);
+    textEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        generateAndBroadcast();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      applyLargeFont(store.get("gy_large_font") === "1");
+      const saved = store.get("gy_last_text");
+      if (saved) textEl.value = saved;
+      updateRangeLabels();
+      updateStats();
+      renderIcons();
+      // 배포 서버처럼 Supertonic이 설치되지 않은 곳에서는 선택지에서 숨긴다
+      fetch("/api/voices").then(r => r.json()).then(v => {
+        if (!v.supertonic) document.getElementById("supertonic-group")?.remove();
+      }).catch(() => {});
+    });
+  </script>
+</body>
+</html>

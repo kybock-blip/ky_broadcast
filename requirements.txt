@@ -1,0 +1,4 @@
+# Server packages for Render (versions tested locally)
+fastapi==0.143.2
+uvicorn==0.54.0
+edge-tts==7.3.1
